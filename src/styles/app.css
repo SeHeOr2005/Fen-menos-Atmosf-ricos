@@ -1,0 +1,71 @@
+:root {
+  --aurora-accent: #00ffcc;
+  --aurora-panel-bg: rgba(0, 0, 0, 0.72);
+  --aurora-btn-bg: #1f2530;
+  --aurora-text: #e9f7ff;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+}
+
+.panel-controls {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 10;
+  max-width: 310px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  background: var(--aurora-panel-bg);
+  color: var(--aurora-text);
+}
+
+.aurora-btn {
+  border: 1px solid var(--aurora-accent);
+  color: var(--aurora-accent);
+  background: var(--aurora-btn-bg);
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.aurora-btn:hover,
+.aurora-btn:focus {
+  color: #031014;
+  background: var(--aurora-accent);
+}
+
+.aurora-btn.is-active {
+  color: #031014;
+  background: var(--aurora-accent);
+}
+
+.panel-legend {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10;
+  max-width: 340px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  background: var(--aurora-panel-bg);
+  color: var(--aurora-text);
+}
