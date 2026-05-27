@@ -25,16 +25,98 @@
     <!-- Leyenda Explicativa (oculta por defecto en la vista local) -->
     <div id="info-legend" class="panel-legend text-light p-3 rounded-3 d-none">
         <h3 class="h6 text-warning mb-2 border-bottom border-secondary pb-1">¿Cómo funciona?</h3>
-        <ul class="list-unstyled small mb-0">
+
+        <!-- Leyenda de Colores Original -->
+        <ul class="list-unstyled small mb-3">
             <li class="mb-2"><strong style="color: #ffaa33;">🟡 Viento Solar:</strong> Partículas expulsadas por el Sol
                 que viajan a la Tierra.</li>
-            <li class="mb-2"><strong style="color: #4488ff;">🔵 Escudo Magnético:</strong> Las líneas azules representan
-                nuestro campo protegiéndonos y desviando el impacto.</li>
-            <li class="mb-2"><strong style="color: #00ff88;">🟢 Canalización polar:</strong> Algunas partículas entran
-                por las zonas más débiles hacia los polos.</li>
-            <li><strong style="color: #ff3366;">🔴 Colisión Atmosférica:</strong> Al chocar con el nitrógeno u oxígeno
-                se libera luz (Las Auroras).</li>
+            <li class="mb-2"><strong style="color: #4488ff;">🔵 Escudo Magnético:</strong> Campo protegiendo a la
+                Tierra.</li>
+            <li class="mb-2"><strong style="color: #00ff88;">🟢 Canalización:</strong> Partículas ingresando por los
+                polos.</li>
+            <li><strong style="color: #ff3366;">🔴 Colisión:</strong> Al chocar con la atmósfera se libera la luz
+                (Auroras).</li>
         </ul>
+
+        <h3 class="h6 text-info mb-2 border-bottom border-secondary pb-1">Física Interactiva</h3>
+        <!-- Menú interactivo -->
+        <div class="accordion" id="physics-menu">
+            <div class="accordion-item bg-transparent text-light border-secondary">
+                <h2 class="accordion-header" id="headingPressure">
+                    <button class="accordion-button bg-transparent text-light collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapsePressure" aria-expanded="false"
+                        aria-controls="collapsePressure" data-equation="pressure">
+                        1. Presión del Viento
+                    </button>
+                </h2>
+                <div id="collapsePressure" class="accordion-collapse collapse" aria-labelledby="headingPressure"
+                    data-bs-parent="#physics-menu">
+                    <div class="accordion-body small py-2">
+                        <strong class="text-white d-block mb-1">Presión Hidrodinámica:</strong>
+                        <i style="color: #ffaa33;">P = &rho; v<sup>2</sup></i><br>
+                        <span class="opacity-75">Dicta la fuerza del impacto inicial del plasma del Sol contra el escudo
+                            magnético terrestre. 🟡</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item bg-transparent text-light border-secondary">
+                <h2 class="accordion-header" id="headingLorentz">
+                    <button class="accordion-button bg-transparent text-light collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseLorentz" aria-expanded="false"
+                        aria-controls="collapseLorentz" data-equation="lorentz">
+                        2. El Atrapamiento
+                    </button>
+                </h2>
+                <div id="collapseLorentz" class="accordion-collapse collapse" aria-labelledby="headingLorentz"
+                    data-bs-parent="#physics-menu">
+                    <div class="accordion-body small py-2">
+                        <strong class="text-white d-block mb-1">Frenado por Fuerza de Lorentz:</strong>
+                        <i style="color: #4488ff;">F = q(v &times; B)</i><br>
+                        <span class="opacity-75">Las cargas solares no cruzan directo la Tierra; debido al campo, son
+                            bloqueadas y toman trayectorias perpendiculares a él. 🔵</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item bg-transparent text-light border-secondary">
+                <h2 class="accordion-header" id="headingCyclotron">
+                    <button class="accordion-button bg-transparent text-light collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseCyclotron" aria-expanded="false"
+                        aria-controls="collapseCyclotron" data-equation="cyclotron">
+                        3. Caída Ciclónica
+                    </button>
+                </h2>
+                <div id="collapseCyclotron" class="accordion-collapse collapse" aria-labelledby="headingCyclotron"
+                    data-bs-parent="#physics-menu">
+                    <div class="accordion-body small py-2">
+                        <strong class="text-white d-block mb-1">Frecuencia de Ciclotrón:</strong>
+                        <i style="color: #00ff88;">f<sub>c</sub> = |q|B / (2&pi;m)</i><br>
+                        <span class="opacity-75">A medida que se acercan a los polos (donde el campo es denso),
+                            comienzan a caer en espirales aceleradas hacia la atmósfera. 🟢</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item bg-transparent text-light border-secondary">
+                <h2 class="accordion-header" id="headingQuantum">
+                    <button class="accordion-button bg-transparent text-light collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseQuantum" aria-expanded="false"
+                        aria-controls="collapseQuantum" data-equation="quantum">
+                        4. Brillo Cuántico
+                    </button>
+                </h2>
+                <div id="collapseQuantum" class="accordion-collapse collapse" aria-labelledby="headingQuantum"
+                    data-bs-parent="#physics-menu">
+                    <div class="accordion-body small py-2">
+                        <strong class="text-white d-block mb-1">Luz Fotónica Liberada:</strong>
+                        <i style="color: #ff3366;">E = hc / &lambda;</i><br>
+                        <span class="opacity-75">La colisión con los átomos de oxígeno libera la energía en forma de luz
+                            (tonos y &lambda; del color rojo o verde). 🔴</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="app"></div>

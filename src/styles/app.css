@@ -62,10 +62,32 @@ body {
   bottom: 20px;
   right: 20px;
   z-index: 10;
-  max-width: 340px;
+  max-width: 360px;
+  max-height: 80vh;
+  overflow-y: auto;
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
   background: var(--aurora-panel-bg);
   color: var(--aurora-text);
+}
+
+/* Estilos de Acordeón para Bootstrap */
+.accordion-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.accordion-button {
+  padding: 10px 5px !important;
+  font-size: 0.9rem;
+  box-shadow: none !important;
+}
+
+.accordion-button:not(.collapsed) {
+  color: #c95fd6 !important;
+  background-color: rgba(200, 100, 255, 0.1) !important;
+}
+
+.accordion-button::after {
+  filter: invert(1);
 }

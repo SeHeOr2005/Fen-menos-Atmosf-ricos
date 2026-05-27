@@ -5,6 +5,7 @@ export class GlobalScene extends THREE.Group {
   constructor() {
     super();
     this.windSpeedMultiplier = 1.0;
+    this.activeHighlight = null;
     this.initEarth();
     this.initMagneticField(); // Simulación visual de los campos magnéticos
     this.initSolarWind(); // Simulación de partículas solares
@@ -151,6 +152,7 @@ export class GlobalScene extends THREE.Group {
 
     this.windVelocities = [];
     this.windStates = []; // 0=Libre(Sol), 1=Desviado, 2=Atrapado(Norte), 3=Atrapado(Sur)
+    this.activeHighlight = null; // Nuevo: guarda el estado morado actual
 
     for (let i = 0; i < this.windCount; i++) {
       this.resetWindParticle(i, positions, colors);
@@ -188,9 +190,43 @@ export class GlobalScene extends THREE.Group {
 
     // Color inicial del plasma solar (Dorado/Naranja)
     if (colors) {
-      colors[i * 3] = 1.0;
-      colors[i * 3 + 1] = 0.6;
-      colors[i * 3 + 2] = 0.1;
+      if (this.activeHighlight === "pressure") {
+        // Modo P=pv^2: Destacar morado el viento solar antes de chocar
+        colors[i * 3] = 0.8;
+        colors[i * 3 + 1] = 0.2;
+        colors[i * 3 + 2] = 1.0;
+      } else {
+        colors[i * 3] = 1.0;
+        colors[i * 3 + 1] = 0.6;
+        colors[i * 3 + 2] = 0.1;
+      }
+    }
+  }
+
+  setHighlight(equationType) {
+    this.activeHighlight = equationType;
+
+    // 1) Actualizar colores de los Tubos Magnéticos (Lorentz)
+    this.magneticGroup.children.forEach((tube) => {
+      if (this.activeHighlight === "lorentz") {
+        tube.material.color.setHex(0xcc44ff); // Morado
+        tube.material.opacity = 0.5; // Hacerlos más notorios
+      } else {
+        tube.material.color.setHex(0x3388ff); // Azul por defecto
+        tube.material.opacity = 0.25;
+      }
+    });
+
+    // 2) Actualizar colores de las Auroras (Quantum)
+    if (this.activeHighlight === "quantum") {
+      this.auroraMaterialGlobal.uniforms.uColorBase = {
+        value: new THREE.Color(0xaa22ff),
+      };
+    } else {
+      // Revertir a colores por defecto del shader
+      this.auroraMaterialGlobal.uniforms.uColorBase = {
+        value: new THREE.Color(0x00ffcc),
+      };
     }
   }
 
@@ -277,6 +313,38 @@ export class GlobalScene extends THREE.Group {
 
         const distFromEarth = Math.sqrt(px * px + py * py + pz * pz);
 
+        // ==== LÓGICA DE DETECCIÓN PARA COLORES MORADOS DE CADA FASE ====
+        // Por defecto no modificamos manual, pero si hay un Highlight pisamos temporalmente su color
+        let isHighlighted = false;
+
+        // P=pv^2 -> Presión -> Viento solar viajando (state 0)
+        if (this.activeHighlight === "pressure" && state === 0) {
+          isHighlighted = true;
+          colors[i * 3] = 0.8;
+          colors[i * 3 + 1] = 0.2;
+          colors[i * 3 + 2] = 1.0;
+        }
+        // Frecuencia Ciclotrón -> Espirales y caídas hacia el polo (state 2 y 3)
+        else if (
+          this.activeHighlight === "cyclotron" &&
+          (state === 2 || state === 3)
+        ) {
+          isHighlighted = true;
+          colors[i * 3] = 0.8;
+          colors[i * 3 + 1] = 0.2;
+          colors[i * 3 + 2] = 1.0;
+        } else if (
+          this.activeHighlight === "quantum" &&
+          distFromEarth < 3.2 &&
+          (state === 2 || state === 3)
+        ) {
+          // Fase colisión final
+          isHighlighted = true;
+          colors[i * 3] = 0.9;
+          colors[i * 3 + 1] = 0.0;
+          colors[i * 3 + 2] = 1.0;
+        }
+
         // 2. Comprobar Choque Magnético (Bow Shock)
         // La Tierra y su escudo miden aprox radio 5.0 desde el lado del sol
         if (state === 0 && px < 7.0 && px > 0 && distFromEarth < 7.0) {
@@ -289,17 +357,46 @@ export class GlobalScene extends THREE.Group {
             this.windStates[i] = py > 0 ? 2 : 3;
 
             // Al ser recién atrapadas por el polo, toman un color verde esmeralda claro
-            colors[i * 3] = 0.0;
-            colors[i * 3 + 1] = 1.0;
-            colors[i * 3 + 2] = 0.2;
+            if (!isHighlighted) {
+              colors[i * 3] = 0.0;
+              colors[i * 3 + 1] = 1.0;
+              colors[i * 3 + 2] = 0.2;
+            }
           } else {
             // Desviada por el escudo magnético
             this.windStates[i] = 1;
 
             // Bajan su intensidad (azul oscuro espacial)
+            if (!isHighlighted) {
+              colors[i * 3] = 0.2;
+              colors[i * 3 + 1] = 0.4;
+              colors[i * 3 + 2] = 1.0;
+            }
+          }
+        }
+
+        // Reasignaciones de color si terminan de pasar o se deshace el highlight
+        // Recuperar color normal
+        if (!isHighlighted) {
+          if (state === 0) {
+            colors[i * 3] = 1.0;
+            colors[i * 3 + 1] = 0.6;
+            colors[i * 3 + 2] = 0.1;
+          } else if (state === 1) {
             colors[i * 3] = 0.2;
             colors[i * 3 + 1] = 0.4;
             colors[i * 3 + 2] = 1.0;
+          } else if (state === 2 || state === 3) {
+            // Si no es el choque quántico final, que siga verde
+            if (distFromEarth < 3.2) {
+              colors[i * 3] = 1.0;
+              colors[i * 3 + 1] = 0.1;
+              colors[i * 3 + 2] = 0.2;
+            } else {
+              colors[i * 3] = 0.0;
+              colors[i * 3 + 1] = 1.0;
+              colors[i * 3 + 2] = 0.2;
+            }
           }
         }
 
