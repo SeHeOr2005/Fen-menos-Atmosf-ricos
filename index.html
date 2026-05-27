@@ -1,44 +1,117 @@
 <!DOCTYPE html>
 <html lang="es">
-
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Auroras Boreales - Simulación</title>
-</head>
+  </head>
 
-<body>
+  <body>
     <div id="controls" class="panel-controls text-light p-3 rounded-3">
-        <h2 class="h5 mb-2">Auroras Boreales</h2>
-        <p class="mb-3 small">Selecciona la escala de visualización:</p>
-        <div class="d-grid gap-2">
-            <button id="btn-local" class="btn aurora-btn is-active" type="button">Escala Local (Persona)</button>
-            <button id="btn-earth" class="btn aurora-btn" type="button">Escala Global (Tierra)</button>
-        </div>
+      <h2 class="h5 mb-2">Fenómenos Atmosféricos</h2>
+      <p class="mb-3 small">Selecciona el fenómeno y la escala:</p>
 
-        <div id="global-controls" class="mt-3 pt-3 border-top border-secondary d-none">
-            <p class="mb-2 small">Viento Solar:</p>
-            <button id="btn-speed" class="btn btn-outline-light btn-sm w-100" type="button">Velocidad: Normal</button>
-        </div>
+      <div class="d-grid gap-2 mb-3">
+        <button id="btn-aurora" class="btn aurora-btn is-active" type="button">
+          Auroras Boreales
+        </button>
+        <button id="btn-rayleigh" class="btn aurora-btn" type="button">
+          Dispersión de Rayleigh
+        </button>
+      </div>
+
+      <div class="d-grid gap-2">
+        <button id="btn-local" class="btn aurora-btn is-active" type="button">
+          Escala Local (Persona)
+        </button>
+        <button id="btn-earth" class="btn aurora-btn" type="button">
+          Escala Global (Tierra)
+        </button>
+      </div>
+
+      <div
+        id="global-controls"
+        class="mt-3 pt-3 border-top border-secondary d-none"
+      >
+        <p class="mb-2 small">Viento Solar:</p>
+        <button
+          id="btn-speed"
+          class="btn btn-outline-light btn-sm w-100"
+          type="button"
+        >
+          Velocidad: Normal
+        </button>
+      </div>
+
+      <div
+        id="rayleigh-controls"
+        class="mt-3 pt-3 border-top border-secondary d-none"
+      >
+        <p class="mb-2 small">Hora del día:</p>
+        <input
+          id="time-slider"
+          class="form-range"
+          type="range"
+          min="0"
+          max="24"
+          step="0.25"
+          value="12"
+        />
+        <div id="time-label" class="small text-info">12:00</div>
+      </div>
     </div>
 
-    <!-- Leyenda Explicativa (oculta por defecto en la vista local) -->
+    <!-- Leyenda Auroras -->
     <div id="info-legend" class="panel-legend text-light p-3 rounded-3 d-none">
-        <h3 class="h6 text-warning mb-2 border-bottom border-secondary pb-1">¿Cómo funciona?</h3>
-        <ul class="list-unstyled small mb-0">
-            <li class="mb-2"><strong style="color: #ffaa33;">🟡 Viento Solar:</strong> Partículas expulsadas por el Sol
-                que viajan a la Tierra.</li>
-            <li class="mb-2"><strong style="color: #4488ff;">🔵 Escudo Magnético:</strong> Las líneas azules representan
-                nuestro campo protegiéndonos y desviando el impacto.</li>
-            <li class="mb-2"><strong style="color: #00ff88;">🟢 Canalización polar:</strong> Algunas partículas entran
-                por las zonas más débiles hacia los polos.</li>
-            <li><strong style="color: #ff3366;">🔴 Colisión Atmosférica:</strong> Al chocar con el nitrógeno u oxígeno
-                se libera luz (Las Auroras).</li>
-        </ul>
+      <h3 class="h6 text-warning mb-2 border-bottom border-secondary pb-1">
+        ¿Cómo funciona?
+      </h3>
+      <ul class="list-unstyled small mb-0">
+        <li class="mb-2">
+          <strong style="color: #ffaa33;">🟡 Viento Solar:</strong> Partículas
+          expulsadas por el Sol que viajan a la Tierra.
+        </li>
+        <li class="mb-2">
+          <strong style="color: #4488ff;">🔵 Escudo Magnético:</strong> Las
+          líneas azules representan nuestro campo protegiéndonos y desviando el
+          impacto.
+        </li>
+        <li class="mb-2">
+          <strong style="color: #00ff88;">🟢 Canalización polar:</strong> Algunas
+          partículas entran por las zonas más débiles hacia los polos.
+        </li>
+        <li>
+          <strong style="color: #ff3366;">🔴 Colisión Atmosférica:</strong> Al
+          chocar con el nitrógeno u oxígeno se libera luz (Las Auroras).
+        </li>
+      </ul>
+    </div>
+
+    <!-- Leyenda Rayleigh -->
+    <div
+      id="rayleigh-legend"
+      class="panel-legend text-light p-3 rounded-3 d-none"
+    >
+      <h3 class="h6 text-info mb-2 border-bottom border-secondary pb-1">
+        Dispersión de Rayleigh
+      </h3>
+      <ul class="list-unstyled small mb-0">
+        <li class="mb-2">
+          <strong style="color:#8cc9ff;">🔵 Azul dominante:</strong> Las ondas
+          cortas se dispersan más.
+        </li>
+        <li class="mb-2">
+          <strong style="color:#ffd18a;">🟠 Atardecer:</strong> La luz recorre más
+          atmósfera y quedan tonos cálidos.
+        </li>
+        <li>
+          <strong style="color:#ffffff;">⚪ Nubes:</strong> Partículas grandes
+          dispersan todos los colores por igual.
+        </li>
+      </ul>
     </div>
 
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
-</body>
-
+  </body>
 </html>

@@ -2,12 +2,13 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { LocalScene } from "./scenes/LocalScene.js";
 import { GlobalScene } from "./scenes/GlobalScene.js";
+import { RayleighLocalScene } from "./scenes/RayleighLocalScene.js";
+import { RayleighGlobalScene } from "./scenes/RayleighGlobalScene.js";
 
 export class App {
   constructor(container) {
     this.container = container;
 
-    // Configuración Core
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(
       75,
@@ -21,82 +22,110 @@ export class App {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.container.appendChild(this.renderer.domElement);
 
-    // Controles de Cámara (Mouse interactivo)
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
 
-    // Inicializar Capas Escénicas
-    this.localScene = new LocalScene();
-    this.globalScene = new GlobalScene();
+    this.auroraLocalScene = new LocalScene();
+    this.auroraGlobalScene = new GlobalScene();
+    this.rayleighLocalScene = new RayleighLocalScene();
+    this.rayleighGlobalScene = new RayleighGlobalScene();
 
-    this.scene.add(this.localScene);
-    this.scene.add(this.globalScene);
+    this.scene.add(this.auroraLocalScene);
+    this.scene.add(this.auroraGlobalScene);
+    this.scene.add(this.rayleighLocalScene);
+    this.scene.add(this.rayleighGlobalScene);
 
-    // Reloj para las animaciones y Shaders
+    this.currentModule = "aurora";
+    this.currentScale = "local";
+    this.timeOfDay = 12;
+
     this.clock = new THREE.Clock();
 
-    // Eventos
     window.addEventListener("resize", this.onResize.bind(this));
 
-    // Vista por defecto
-    this.setLocalView();
-
-    // Arrancar render loop
+    this.applyView();
+    this.setTimeOfDay(this.timeOfDay);
     this.animate();
   }
 
+  setModule(module) {
+    this.currentModule = module;
+    this.applyView();
+  }
+
   setLocalView() {
-    this.localScene.visible = true;
-    this.globalScene.visible = false;
-
-    // Lógica visual del entorno (Niebla local por ej.)
-    this.scene.background = this.localScene.fogColor;
-    this.scene.fog = new THREE.FogExp2(
-      this.localScene.fogColor.getHex(),
-      0.018,
-    );
-
-    // Cámara más baja para reforzar sensación de estar en el suelo.
-    this.camera.position.set(0, -0.9, 10.8);
-    this.controls.target.set(0, 11.2, 0);
-
-    this.controls.enablePan = false;
-    this.controls.enableZoom = true;
-    this.controls.minDistance = 13.2;
-    this.controls.maxDistance = 19.0;
-    this.controls.minPolarAngle = 2.08;
-    this.controls.maxPolarAngle = 3.0;
-    this.controls.minAzimuthAngle = -Infinity;
-    this.controls.maxAzimuthAngle = Infinity;
+    this.currentScale = "local";
+    this.applyView();
   }
 
   setGlobalView() {
-    this.localScene.visible = false;
-    this.globalScene.visible = true;
+    this.currentScale = "global";
+    this.applyView();
+  }
 
-    // Entorno espacial sin niebla
-    this.scene.background = this.globalScene.backgroundColor;
-    this.scene.fog = null;
+  applyView() {
+    const isAurora = this.currentModule === "aurora";
+    const isLocal = this.currentScale === "local";
 
-    // Posicionar cámara en la órbita de la Tierra
-    this.camera.position.set(4, 5, 12);
-    this.controls.target.set(0, 0, 0);
+    this.auroraLocalScene.visible = isAurora && isLocal;
+    this.auroraGlobalScene.visible = isAurora && !isLocal;
+    this.rayleighLocalScene.visible = !isAurora && isLocal;
+    this.rayleighGlobalScene.visible = !isAurora && !isLocal;
 
-    // Evitar que la cámara entre dentro de la Tierra (Radio 3)
-    this.controls.enablePan = false;
-    this.controls.enableZoom = true;
-    this.controls.minDistance = 3.5;
-    this.controls.maxDistance = 50;
-    this.controls.minPolarAngle = 0;
-    this.controls.maxPolarAngle = Math.PI; // Libre movimiento completo
-    this.controls.minAzimuthAngle = -Infinity;
-    this.controls.maxAzimuthAngle = Infinity;
+    if (isLocal) {
+      const activeLocal = isAurora
+        ? this.auroraLocalScene
+        : this.rayleighLocalScene;
+
+      const fogColor = activeLocal.fogColor || new THREE.Color(0x87b8ff);
+      const fogDensity = activeLocal.fogDensity ?? 0.018;
+
+      this.scene.background = fogColor;
+      this.scene.fog = new THREE.FogExp2(fogColor.getHex(), fogDensity);
+
+      this.camera.position.set(0, -0.9, 10.8);
+      this.controls.target.set(0, 11.2, 0);
+      this.controls.enablePan = false;
+      this.controls.enableZoom = true;
+      this.controls.minDistance = 13.2;
+      this.controls.maxDistance = 19.0;
+      this.controls.minPolarAngle = 2.08;
+      this.controls.maxPolarAngle = 3.0;
+    } else {
+      const activeGlobal = isAurora
+        ? this.auroraGlobalScene
+        : this.rayleighGlobalScene;
+
+      this.scene.background =
+        activeGlobal.backgroundColor || new THREE.Color(0x000000);
+      this.scene.fog = null;
+
+      this.camera.position.set(4, 5, 12);
+      this.controls.target.set(0, 0, 0);
+      this.controls.enablePan = false;
+      this.controls.enableZoom = true;
+      this.controls.minDistance = 3.5;
+      this.controls.maxDistance = 50;
+      this.controls.minPolarAngle = 0;
+      this.controls.maxPolarAngle = Math.PI;
+    }
+  }
+
+  setTimeOfDay(hour) {
+    this.timeOfDay = hour;
+
+    if (this.rayleighLocalScene?.setTimeOfDay) {
+      this.rayleighLocalScene.setTimeOfDay(hour);
+    }
+    if (this.rayleighGlobalScene?.setTimeOfDay) {
+      this.rayleighGlobalScene.setTimeOfDay(hour);
+    }
   }
 
   setWindSpeed(multiplier) {
-    if (this.globalScene) {
-      this.globalScene.windSpeedMultiplier = multiplier;
+    if (this.currentModule === "aurora" && this.auroraGlobalScene) {
+      this.auroraGlobalScene.windSpeedMultiplier = multiplier;
     }
   }
 
@@ -111,12 +140,15 @@ export class App {
 
     const elapsedTime = this.clock.getElapsedTime();
 
-    // Actualizar Shaders y lógica de la escena activa
-    if (this.localScene.visible) this.localScene.update(elapsedTime);
-    if (this.globalScene.visible) this.globalScene.update(elapsedTime);
+    if (this.auroraLocalScene.visible) this.auroraLocalScene.update(elapsedTime);
+    if (this.auroraGlobalScene.visible)
+      this.auroraGlobalScene.update(elapsedTime);
+    if (this.rayleighLocalScene.visible)
+      this.rayleighLocalScene.update(elapsedTime);
+    if (this.rayleighGlobalScene.visible)
+      this.rayleighGlobalScene.update(elapsedTime);
 
-    this.controls.update(); // Necesario por el "damping" (suavizado del mouse)
-
+    this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }
 }
