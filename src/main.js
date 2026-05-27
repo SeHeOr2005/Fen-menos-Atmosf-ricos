@@ -107,3 +107,29 @@ btnEarth.addEventListener("click", () => {
   setActiveButton(btnEarth, btnLocal);
   applyView();
 });
+  infoLegend.classList.remove("d-none");
+  globalControls.classList.remove("d-none"); // Mostrar control en global
+
+// Lógica del Menú Interactivo (Acordeón Bootstrap)
+import "bootstrap/dist/js/bootstrap.bundle.min.js"; // Necesario para el colapso del accordion
+
+const physicsButtons = document.querySelectorAll(".accordion-button");
+
+physicsButtons.forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    // Si se está abriendo el panel (no está collapsed)
+    const isExpanded = btn.getAttribute("aria-expanded") === "true";
+    const equationType = btn.getAttribute("data-equation");
+
+    if (isExpanded) {
+      // Comunicar a la GlobalScene (vía App.js) qué ecuación resaltar
+      app.highlightGlobalEquation(equationType);
+    } else {
+      // Si se cerró, quitar el resaltado (volver a la normalidad)
+      app.highlightGlobalEquation(null);
+    }
+
+    // Al abrir uno distinto (Bootstrap maneja el cierre de los demás automáticamente)
+    // Pero si el usuario cierra manualmente todos, o cambia, enviamos el evento.
+  });
+});
