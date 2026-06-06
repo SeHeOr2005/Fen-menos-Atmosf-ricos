@@ -4,28 +4,46 @@ import { App } from "./App.js";
 
 const app = new App(document.getElementById("app"));
 
-// --- LÓGICA DE BOTONES PARA UI --- //
-const btnAurora = document.getElementById("btn-aurora");
+// ─── REFERENCIAS UI ───────────────────────────────────────────────────────────
+const btnAurora   = document.getElementById("btn-aurora");
 const btnRayleigh = document.getElementById("btn-rayleigh");
-const btnLocal = document.getElementById("btn-local");
-const btnEarth = document.getElementById("btn-earth");
+const btnSunset   = document.getElementById("btn-sunset");
+const btnLocal    = document.getElementById("btn-local");
+const btnEarth    = document.getElementById("btn-earth");
 
-const infoLegend = document.getElementById("info-legend");
+const infoLegend    = document.getElementById("info-legend");
 const rayleighLegend = document.getElementById("rayleigh-legend");
-const globalControls = document.getElementById("global-controls");
+const sunsetLegend  = document.getElementById("sunset-legend");
+const globalControls  = document.getElementById("global-controls");
 const rayleighControls = document.getElementById("rayleigh-controls");
 const btnSpeed = document.getElementById("btn-speed");
 
 const timeSlider = document.getElementById("time-slider");
-const timeLabel = document.getElementById("time-label");
+const timeLabel  = document.getElementById("time-label");
 
-function setActiveButton(activeButton, inactiveButton) {
-  activeButton.classList.add("is-active");
-  inactiveButton.classList.remove("is-active");
+// ─── ESTADO ───────────────────────────────────────────────────────────────────
+let currentModule = "aurora"; // "aurora" | "rayleigh" | "sunset"
+let currentScale  = "local";  // "local"  | "global"
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function setActiveModule(module) {
+  currentModule = module;
+  btnAurora.classList.toggle("is-active",   module === "aurora");
+  btnRayleigh.classList.toggle("is-active", module === "rayleigh");
+  btnSunset.classList.toggle("is-active",   module === "sunset");
 }
 
-let currentModule = "aurora"; // "aurora" | "rayleigh"
-let currentScale = "local"; // "local" | "global"
+function setActiveScale(scale) {
+  currentScale = scale;
+  btnLocal.classList.toggle("is-active",  scale === "local");
+  btnEarth.classList.toggle("is-active",  scale === "global");
+}
+
+function formatHour(value) {
+  const hours   = Math.floor(value);
+  const minutes = Math.round((value - hours) * 60);
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
 
 function applyView() {
   app.setModule(currentModule);
@@ -36,25 +54,33 @@ function applyView() {
     app.setGlobalView();
   }
 
-  const isAurora = currentModule === "aurora";
-  const isGlobal = currentScale === "global";
+  const isAurora   = currentModule === "aurora";
+  const isRayleigh = currentModule === "rayleigh";
+  const isSunset   = currentModule === "sunset";
+  const isGlobal   = currentScale  === "global";
 
-  // Leyendas
-  infoLegend.classList.toggle("d-none", !(isAurora && isGlobal));
-  rayleighLegend.classList.toggle("d-none", isAurora);
+  // ── Leyendas ──
+  infoLegend.classList.toggle("d-none",     !(isAurora && isGlobal));
+  rayleighLegend.classList.toggle("d-none",  !isRayleigh);
+  sunsetLegend.classList.toggle("d-none",    !isSunset);
 
-  // Controles
-  globalControls.classList.toggle("d-none", !(isAurora && isGlobal));
+  // ── Controles ──
+  // Panel de viento solar: solo aurora en global
+  globalControls.classList.toggle("d-none",  !(isAurora && isGlobal));
+  // Slider de hora: visible para rayleigh Y sunset (ambos usan timeOfDay)
   rayleighControls.classList.toggle("d-none", isAurora);
 }
 
-/* Control de velocidad del viento solar */
-let currentSpeed = 1; // 0 = Lento, 1 = Normal, 2 = Rápido
-const speedLabels = [
-  "Velocidad: Lenta",
-  "Velocidad: Normal",
-  "Velocidad: Rápida",
-];
+// ─── SLIDER DE HORA ───────────────────────────────────────────────────────────
+timeSlider.addEventListener("input", (e) => {
+  const hour = Number(e.target.value);
+  timeLabel.textContent = formatHour(hour);
+  app.setTimeOfDay(hour);
+});
+
+// ─── VELOCIDAD DEL VIENTO (Aurora) ────────────────────────────────────────────
+let currentSpeed = 1;
+const speedLabels      = ["Velocidad: Lenta", "Velocidad: Normal", "Velocidad: Rápida"];
 const speedMultipliers = [0.2, 1.0, 3.5];
 
 btnSpeed.addEventListener("click", () => {
@@ -63,73 +89,48 @@ btnSpeed.addEventListener("click", () => {
   app.setWindSpeed(speedMultipliers[currentSpeed]);
 });
 
-function formatHour(value) {
-  const hours = Math.floor(value);
-  const minutes = Math.round((value - hours) * 60);
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-}
-
-timeSlider.addEventListener("input", (e) => {
-  const hour = Number(e.target.value);
-  timeLabel.textContent = formatHour(hour);
-  app.setTimeOfDay(hour);
-});
-
-// Estado inicial UI
-setActiveButton(btnAurora, btnRayleigh);
-setActiveButton(btnLocal, btnEarth);
-applyView();
-
-// Hora inicial
-timeLabel.textContent = formatHour(Number(timeSlider.value));
-app.setTimeOfDay(Number(timeSlider.value));
-
+// ─── BOTONES DE MÓDULO ────────────────────────────────────────────────────────
 btnAurora.addEventListener("click", () => {
-  currentModule = "aurora";
-  setActiveButton(btnAurora, btnRayleigh);
+  setActiveModule("aurora");
   applyView();
 });
 
 btnRayleigh.addEventListener("click", () => {
-  currentModule = "rayleigh";
-  setActiveButton(btnRayleigh, btnAurora);
+  setActiveModule("rayleigh");
   applyView();
 });
 
+btnSunset.addEventListener("click", () => {
+  setActiveModule("sunset");
+  applyView();
+});
+
+// ─── BOTONES DE ESCALA ────────────────────────────────────────────────────────
 btnLocal.addEventListener("click", () => {
-  currentScale = "local";
-  setActiveButton(btnLocal, btnEarth);
+  setActiveScale("local");
   applyView();
 });
 
 btnEarth.addEventListener("click", () => {
-  currentScale = "global";
-  setActiveButton(btnEarth, btnLocal);
+  setActiveScale("global");
   applyView();
 });
-  infoLegend.classList.remove("d-none");
-  globalControls.classList.remove("d-none"); // Mostrar control en global
 
-// Lógica del Menú Interactivo (Acordeón Bootstrap)
-import "bootstrap/dist/js/bootstrap.bundle.min.js"; // Necesario para el colapso del accordion
+// ─── FÍSICA INTERACTIVA (acordeón Aurora) ─────────────────────────────────────
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
-const physicsButtons = document.querySelectorAll(".accordion-button");
-
-physicsButtons.forEach((btn) => {
-  btn.addEventListener("click", (e) => {
-    // Si se está abriendo el panel (no está collapsed)
-    const isExpanded = btn.getAttribute("aria-expanded") === "true";
+document.querySelectorAll(".accordion-button").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const isExpanded  = btn.getAttribute("aria-expanded") === "true";
     const equationType = btn.getAttribute("data-equation");
-
-    if (isExpanded) {
-      // Comunicar a la GlobalScene (vía App.js) qué ecuación resaltar
-      app.highlightGlobalEquation(equationType);
-    } else {
-      // Si se cerró, quitar el resaltado (volver a la normalidad)
-      app.highlightGlobalEquation(null);
-    }
-
-    // Al abrir uno distinto (Bootstrap maneja el cierre de los demás automáticamente)
-    // Pero si el usuario cierra manualmente todos, o cambia, enviamos el evento.
+    app.highlightGlobalEquation(isExpanded ? equationType : null);
   });
 });
+
+// ─── ESTADO INICIAL ───────────────────────────────────────────────────────────
+setActiveModule("aurora");
+setActiveScale("local");
+applyView();
+
+timeLabel.textContent = formatHour(Number(timeSlider.value));
+app.setTimeOfDay(Number(timeSlider.value));

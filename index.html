@@ -3,23 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Auroras Boreales - Simulación</title>
+    <title>Fenómenos Atmosféricos - Simulación</title>
   </head>
 
   <body>
+    <!-- ═══ PANEL DE CONTROLES ════════════════════════════════════════════════ -->
     <div id="controls" class="panel-controls text-light p-3 rounded-3">
       <h2 class="h5 mb-2">Fenómenos Atmosféricos</h2>
       <p class="mb-3 small">Selecciona el fenómeno y la escala:</p>
 
+      <!-- Módulos -->
       <div class="d-grid gap-2 mb-3">
-        <button id="btn-aurora" class="btn aurora-btn is-active" type="button">
+        <button id="btn-aurora"   class="btn aurora-btn is-active" type="button">
           Auroras Boreales
         </button>
         <button id="btn-rayleigh" class="btn aurora-btn" type="button">
           Dispersión de Rayleigh
         </button>
+        <button id="btn-sunset"   class="btn aurora-btn" type="button">
+           Atardecer
+        </button>
       </div>
 
+      <!-- Escala -->
       <div class="d-grid gap-2">
         <button id="btn-local" class="btn aurora-btn is-active" type="button">
           Escala Local (Persona)
@@ -29,24 +35,16 @@
         </button>
       </div>
 
-      <div
-        id="global-controls"
-        class="mt-3 pt-3 border-top border-secondary d-none"
-      >
+      <!-- Control viento solar (solo aurora global) -->
+      <div id="global-controls" class="mt-3 pt-3 border-top border-secondary d-none">
         <p class="mb-2 small">Viento Solar:</p>
-        <button
-          id="btn-speed"
-          class="btn btn-outline-light btn-sm w-100"
-          type="button"
-        >
+        <button id="btn-speed" class="btn btn-outline-light btn-sm w-100" type="button">
           Velocidad: Normal
         </button>
       </div>
 
-      <div
-        id="rayleigh-controls"
-        class="mt-3 pt-3 border-top border-secondary d-none"
-      >
+      <!-- Control de hora — compartido por Rayleigh y Atardecer -->
+      <div id="rayleigh-controls" class="mt-3 pt-3 border-top border-secondary d-none">
         <p class="mb-2 small">Hora del día:</p>
         <input
           id="time-slider"
@@ -57,151 +55,213 @@
           step="0.25"
           value="12"
         />
-        <div id="time-label" class="small text-info">12:00</div>
+        <div class="d-flex justify-content-between small opacity-50 px-1">
+          <span>00:00</span>
+          <span>06:00</span>
+          <span>12:00</span>
+          <span>18:00</span>
+          <span>24:00</span>
+        </div>
+        <div id="time-label" class="small text-info text-center mt-1 fw-bold">12:00</div>
       </div>
     </div>
 
-    <!-- Leyenda Auroras -->
+    <!-- ═══ LEYENDA: AURORAS ════════════════════════════════════════════════ -->
     <div id="info-legend" class="panel-legend text-light p-3 rounded-3 d-none">
-      <h3 class="h6 text-warning mb-2 border-bottom border-secondary pb-1">
-        ¿Cómo funciona?
-      </h3>
+      <h3 class="h6 text-warning mb-2 border-bottom border-secondary pb-1">¿Cómo funciona?</h3>
       <ul class="list-unstyled small mb-0">
         <li class="mb-2">
-          <strong style="color: #ffaa33;">🟡 Viento Solar:</strong> Partículas
-          expulsadas por el Sol que viajan a la Tierra.
+          <strong style="color:#ffaa33;">🟡 Viento Solar:</strong>
+          Partículas expulsadas por el Sol que viajan a la Tierra.
         </li>
         <li class="mb-2">
-          <strong style="color: #4488ff;">🔵 Escudo Magnético:</strong> Las
-          líneas azules representan nuestro campo protegiéndonos y desviando el
-          impacto.
+          <strong style="color:#4488ff;">🔵 Escudo Magnético:</strong>
+          Las líneas azules representan nuestro campo protegiéndonos.
         </li>
         <li class="mb-2">
-          <strong style="color: #00ff88;">🟢 Canalización polar:</strong> Algunas
-          partículas entran por las zonas más débiles hacia los polos.
+          <strong style="color:#00ff88;">🟢 Canalización polar:</strong>
+          Algunas partículas entran por las zonas más débiles hacia los polos.
         </li>
         <li>
-          <strong style="color: #ff3366;">🔴 Colisión Atmosférica:</strong> Al
-          chocar con el nitrógeno u oxígeno se libera luz (Las Auroras).
+          <strong style="color:#ff3366;">🔴 Colisión Atmosférica:</strong>
+          Al chocar con el nitrógeno u oxígeno se libera luz (Las Auroras).
         </li>
       </ul>
+
+      <h3 class="h6 text-warning mt-3 mb-2 border-bottom border-secondary pb-1">Física Interactiva</h3>
+      <div class="accordion" id="physics-menu">
+        <div class="accordion-item bg-transparent text-light border-secondary">
+          <h2 class="accordion-header" id="headingPressure">
+            <button class="accordion-button bg-transparent text-light collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#collapsePressure"
+              aria-expanded="false" aria-controls="collapsePressure" data-equation="pressure">
+              1. Presión del Viento
+            </button>
+          </h2>
+          <div id="collapsePressure" class="accordion-collapse collapse"
+            aria-labelledby="headingPressure" data-bs-parent="#physics-menu">
+            <div class="accordion-body small py-2">
+              <strong class="text-white d-block mb-1">Presión Hidrodinámica:</strong>
+              <i style="color:#ffaa33;">P = ρ v²</i><br>
+              <span class="opacity-75">Dicta la fuerza del impacto inicial del plasma del Sol contra el escudo magnético terrestre. 🟡</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item bg-transparent text-light border-secondary">
+          <h2 class="accordion-header" id="headingLorentz">
+            <button class="accordion-button bg-transparent text-light collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#collapseLorentz"
+              aria-expanded="false" aria-controls="collapseLorentz" data-equation="lorentz">
+              2. El Atrapamiento
+            </button>
+          </h2>
+          <div id="collapseLorentz" class="accordion-collapse collapse"
+            aria-labelledby="headingLorentz" data-bs-parent="#physics-menu">
+            <div class="accordion-body small py-2">
+              <strong class="text-white d-block mb-1">Frenado por Fuerza de Lorentz:</strong>
+              <i style="color:#4488ff;">F = q(v × B)</i><br>
+              <span class="opacity-75">Las cargas solares no cruzan directo la Tierra; el campo las bloquea. 🔵</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item bg-transparent text-light border-secondary">
+          <h2 class="accordion-header" id="headingCyclotron">
+            <button class="accordion-button bg-transparent text-light collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#collapseCyclotron"
+              aria-expanded="false" aria-controls="collapseCyclotron" data-equation="cyclotron">
+              3. Caída Ciclónica
+            </button>
+          </h2>
+          <div id="collapseCyclotron" class="accordion-collapse collapse"
+            aria-labelledby="headingCyclotron" data-bs-parent="#physics-menu">
+            <div class="accordion-body small py-2">
+              <strong class="text-white d-block mb-1">Frecuencia de Ciclotrón:</strong>
+              <i style="color:#00ff88;">f<sub>c</sub> = |q|B / (2πm)</i><br>
+              <span class="opacity-75">Espirales aceleradas hacia la atmósfera cerca de los polos. 🟢</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item bg-transparent text-light border-secondary">
+          <h2 class="accordion-header" id="headingQuantum">
+            <button class="accordion-button bg-transparent text-light collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#collapseQuantum"
+              aria-expanded="false" aria-controls="collapseQuantum" data-equation="quantum">
+              4. Brillo Cuántico
+            </button>
+          </h2>
+          <div id="collapseQuantum" class="accordion-collapse collapse"
+            aria-labelledby="headingQuantum" data-bs-parent="#physics-menu">
+            <div class="accordion-body small py-2">
+              <strong class="text-white d-block mb-1">Luz Fotónica Liberada:</strong>
+              <i style="color:#ff3366;">E = hc / λ</i><br>
+              <span class="opacity-75">La colisión con oxígeno libera energía en forma de luz visible. 🔴</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Leyenda Rayleigh -->
-    <div
-      id="rayleigh-legend"
-      class="panel-legend text-light p-3 rounded-3 d-none"
-    >
+    <!-- ═══ LEYENDA: RAYLEIGH ════════════════════════════════════════════════ -->
+    <div id="rayleigh-legend" class="panel-legend text-light p-3 rounded-3 d-none">
       <h3 class="h6 text-info mb-2 border-bottom border-secondary pb-1">
         Dispersión de Rayleigh
       </h3>
       <ul class="list-unstyled small mb-0">
         <li class="mb-2">
-          <strong style="color:#8cc9ff;">🔵 Azul dominante:</strong> Las ondas
-          cortas se dispersan más.
+          <strong style="color:#8cc9ff;">🔵 Azul dominante:</strong>
+          Las ondas cortas (~450 nm) se dispersan ~5× más que las rojas.
         </li>
         <li class="mb-2">
-          <strong style="color:#ffd18a;">🟠 Atardecer:</strong> La luz recorre más
-          atmósfera y quedan tonos cálidos.
+          <strong style="color:#ffd18a;">🟠 Atardecer:</strong>
+          La luz recorre más atmósfera y quedan tonos cálidos.
         </li>
         <li>
-          <strong style="color:#ffffff;">⚪ Nubes:</strong> Partículas grandes
-          dispersan todos los colores por igual.
+          <strong style="color:#ffffff;">⚪ Nubes:</strong>
+          Partículas grandes dispersan todos los colores por igual.
         </li>
       </ul>
-        <h3 class="h6 text-warning mb-2 border-bottom border-secondary pb-1">¿Cómo funciona?</h3>
+    </div>
 
-        <!-- Leyenda de Colores Original -->
-        <ul class="list-unstyled small mb-3">
-            <li class="mb-2"><strong style="color: #ffaa33;">🟡 Viento Solar:</strong> Partículas expulsadas por el Sol
-                que viajan a la Tierra.</li>
-            <li class="mb-2"><strong style="color: #4488ff;">🔵 Escudo Magnético:</strong> Campo protegiendo a la
-                Tierra.</li>
-            <li class="mb-2"><strong style="color: #00ff88;">🟢 Canalización:</strong> Partículas ingresando por los
-                polos.</li>
-            <li><strong style="color: #ff3366;">🔴 Colisión:</strong> Al chocar con la atmósfera se libera la luz
-                (Auroras).</li>
-        </ul>
+    <!-- ═══ LEYENDA: ATARDECER ═══════════════════════════════════════════════ -->
+    <div id="sunset-legend" class="panel-legend text-light p-3 rounded-3 d-none">
 
-        <h3 class="h6 text-info mb-2 border-bottom border-secondary pb-1">Física Interactiva</h3>
-        <!-- Menú interactivo -->
-        <div class="accordion" id="physics-menu">
-            <div class="accordion-item bg-transparent text-light border-secondary">
-                <h2 class="accordion-header" id="headingPressure">
-                    <button class="accordion-button bg-transparent text-light collapsed" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#collapsePressure" aria-expanded="false"
-                        aria-controls="collapsePressure" data-equation="pressure">
-                        1. Presión del Viento
-                    </button>
-                </h2>
-                <div id="collapsePressure" class="accordion-collapse collapse" aria-labelledby="headingPressure"
-                    data-bs-parent="#physics-menu">
-                    <div class="accordion-body small py-2">
-                        <strong class="text-white d-block mb-1">Presión Hidrodinámica:</strong>
-                        <i style="color: #ffaa33;">P = &rho; v<sup>2</sup></i><br>
-                        <span class="opacity-75">Dicta la fuerza del impacto inicial del plasma del Sol contra el escudo
-                            magnético terrestre. 🟡</span>
-                    </div>
-                </div>
-            </div>
+      <h3 class="h6 mb-2 border-bottom border-secondary pb-1" style="color:#ff9944;">
+        🌅 El Atardecer — Dispersión de Rayleigh
+      </h3>
 
-            <div class="accordion-item bg-transparent text-light border-secondary">
-                <h2 class="accordion-header" id="headingLorentz">
-                    <button class="accordion-button bg-transparent text-light collapsed" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#collapseLorentz" aria-expanded="false"
-                        aria-controls="collapseLorentz" data-equation="lorentz">
-                        2. El Atrapamiento
-                    </button>
-                </h2>
-                <div id="collapseLorentz" class="accordion-collapse collapse" aria-labelledby="headingLorentz"
-                    data-bs-parent="#physics-menu">
-                    <div class="accordion-body small py-2">
-                        <strong class="text-white d-block mb-1">Frenado por Fuerza de Lorentz:</strong>
-                        <i style="color: #4488ff;">F = q(v &times; B)</i><br>
-                        <span class="opacity-75">Las cargas solares no cruzan directo la Tierra; debido al campo, son
-                            bloqueadas y toman trayectorias perpendiculares a él. 🔵</span>
-                    </div>
-                </div>
-            </div>
+      <p class="small mb-3 opacity-75">
+        La luz solar contiene todos los colores. Al atravesar la atmósfera,
+        cada longitud de onda interactúa de forma distinta con las moléculas de aire.
+      </p>
 
-            <div class="accordion-item bg-transparent text-light border-secondary">
-                <h2 class="accordion-header" id="headingCyclotron">
-                    <button class="accordion-button bg-transparent text-light collapsed" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#collapseCyclotron" aria-expanded="false"
-                        aria-controls="collapseCyclotron" data-equation="cyclotron">
-                        3. Caída Ciclónica
-                    </button>
-                </h2>
-                <div id="collapseCyclotron" class="accordion-collapse collapse" aria-labelledby="headingCyclotron"
-                    data-bs-parent="#physics-menu">
-                    <div class="accordion-body small py-2">
-                        <strong class="text-white d-block mb-1">Frecuencia de Ciclotrón:</strong>
-                        <i style="color: #00ff88;">f<sub>c</sub> = |q|B / (2&pi;m)</i><br>
-                        <span class="opacity-75">A medida que se acercan a los polos (donde el campo es denso),
-                            comienzan a caer en espirales aceleradas hacia la atmósfera. 🟢</span>
-                    </div>
-                </div>
-            </div>
+      <!-- Longitudes de onda -->
+      <ul class="list-unstyled small mb-3">
+        <li class="mb-2">
+          <strong style="color:#6699ff;">🔵 Azul (450 nm):</strong>
+          Dispersión <em>máxima</em> — se esparce en todas direcciones.
+          Al atardecer, apenas llega al observador.
+        </li>
+        <li class="mb-2">
+          <strong style="color:#44ee88;">🟢 Verde (550 nm):</strong>
+          Dispersión <em>media</em> — parte se pierde en la atmósfera.
+        </li>
+        <li class="mb-2">
+          <strong style="color:#ff6644;">🔴 Rojo (700 nm):</strong>
+          Dispersión <em>mínima</em> — recorre la atmósfera casi sin desviarse.
+          Es el color predominante al atardecer.
+        </li>
+      </ul>
 
-            <div class="accordion-item bg-transparent text-light border-secondary">
-                <h2 class="accordion-header" id="headingQuantum">
-                    <button class="accordion-button bg-transparent text-light collapsed" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#collapseQuantum" aria-expanded="false"
-                        aria-controls="collapseQuantum" data-equation="quantum">
-                        4. Brillo Cuántico
-                    </button>
-                </h2>
-                <div id="collapseQuantum" class="accordion-collapse collapse" aria-labelledby="headingQuantum"
-                    data-bs-parent="#physics-menu">
-                    <div class="accordion-body small py-2">
-                        <strong class="text-white d-block mb-1">Luz Fotónica Liberada:</strong>
-                        <i style="color: #ff3366;">E = hc / &lambda;</i><br>
-                        <span class="opacity-75">La colisión con los átomos de oxígeno libera la energía en forma de luz
-                            (tonos y &lambda; del color rojo o verde). 🔴</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+      <!-- Ley de Rayleigh -->
+      <div class="p-2 rounded mb-3" style="background:rgba(255,150,50,0.1); border:1px solid rgba(255,150,50,0.3);">
+        <p class="small mb-1"><strong class="text-warning">Ley de Rayleigh:</strong></p>
+        <p class="small mb-0 text-center" style="color:#ffcc88;">
+          Dispersión ∝ 1 / λ⁴
+        </p>
+        <p class="small mb-0 opacity-75 mt-1">
+          El azul (λ corta) se dispersa ~5.5× más que el rojo (λ larga).
+        </p>
+      </div>
+
+      <!-- Recorrido atmosférico -->
+      <h3 class="h6 mb-2 border-bottom border-secondary pb-1" style="color:#ffaa44;">
+        Recorrido Atmosférico
+      </h3>
+      <ul class="list-unstyled small mb-3">
+        <li class="mb-2">
+          ☀️ <strong>Mediodía:</strong>
+          Sol en el cenit → recorrido <strong style="color:#88aaff;">corto</strong>
+          → cielo azul.
+        </li>
+        <li>
+          🌅 <strong>Atardecer:</strong>
+          Sol en el horizonte → recorrido <strong style="color:#ff8844;">muy largo</strong>
+          → azul dispersado → cielo naranja/rojo.
+        </li>
+      </ul>
+
+      <!-- Hora del día -->
+      <h3 class="h6 mb-2 border-bottom border-secondary pb-1" style="color:#ffcc66;">
+        Comportamiento por hora
+      </h3>
+      <ul class="list-unstyled small mb-0">
+        <li class="mb-1">🌤 <strong>06:00 – 09:00</strong> Amanecer · tonos cálidos suaves</li>
+        <li class="mb-1">🔵 <strong>12:00</strong> Mediodía · cielo azul intenso</li>
+        <li class="mb-1">🌇 <strong>15:00 – 18:00</strong> Tarde/Atardecer · naranjas y rojos</li>
+        <li>🌆 <strong>19:00</strong> Post-atardecer · rojos profundos</li>
+      </ul>
+
+      <!-- Nota científica -->
+      <div class="mt-3 p-2 rounded small opacity-75"
+        style="background:rgba(100,100,255,0.08); border:1px solid rgba(100,100,255,0.2);">
+        <strong style="color:#aabbff;">Nota:</strong>
+        El cielo nunca es <em>solo</em> rojo al atardecer.
+        El rojo es el color que <em>llega con mayor intensidad</em> al observador
+        porque el azul se ha dispersado antes de alcanzarlo.
+      </div>
     </div>
 
     <div id="app"></div>

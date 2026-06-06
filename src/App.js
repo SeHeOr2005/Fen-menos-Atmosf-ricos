@@ -4,6 +4,8 @@ import { LocalScene } from "./scenes/LocalScene.js";
 import { GlobalScene } from "./scenes/GlobalScene.js";
 import { RayleighLocalScene } from "./scenes/RayleighLocalScene.js";
 import { RayleighGlobalScene } from "./scenes/RayleighGlobalScene.js";
+import { SunsetLocalScene } from "./scenes/SunsetLocalScene.js";
+import { SunsetGlobalScene } from "./scenes/SunsetGlobalScene.js";
 
 export class App {
   constructor(container) {
@@ -30,11 +32,15 @@ export class App {
     this.auroraGlobalScene = new GlobalScene();
     this.rayleighLocalScene = new RayleighLocalScene();
     this.rayleighGlobalScene = new RayleighGlobalScene();
+    this.sunsetLocalScene = new SunsetLocalScene();
+    this.sunsetGlobalScene = new SunsetGlobalScene();
 
     this.scene.add(this.auroraLocalScene);
     this.scene.add(this.auroraGlobalScene);
     this.scene.add(this.rayleighLocalScene);
     this.scene.add(this.rayleighGlobalScene);
+    this.scene.add(this.sunsetLocalScene);
+    this.scene.add(this.sunsetGlobalScene);
 
     this.currentModule = "aurora";
     this.currentScale = "local";
@@ -66,17 +72,23 @@ export class App {
 
   applyView() {
     const isAurora = this.currentModule === "aurora";
+    const isRayleigh = this.currentModule === "rayleigh";
+    const isSunset = this.currentModule === "sunset";
     const isLocal = this.currentScale === "local";
 
     this.auroraLocalScene.visible = isAurora && isLocal;
     this.auroraGlobalScene.visible = isAurora && !isLocal;
-    this.rayleighLocalScene.visible = !isAurora && isLocal;
-    this.rayleighGlobalScene.visible = !isAurora && !isLocal;
+    this.rayleighLocalScene.visible = isRayleigh && isLocal;
+    this.rayleighGlobalScene.visible = isRayleigh && !isLocal;
+    this.sunsetLocalScene.visible = isSunset && isLocal;
+    this.sunsetGlobalScene.visible = isSunset && !isLocal;
 
     if (isLocal) {
       const activeLocal = isAurora
         ? this.auroraLocalScene
-        : this.rayleighLocalScene;
+        : isRayleigh
+        ? this.rayleighLocalScene
+        : this.sunsetLocalScene;
 
       const fogColor = activeLocal.fogColor || new THREE.Color(0x87b8ff);
       const fogDensity = activeLocal.fogDensity ?? 0.018;
@@ -95,7 +107,9 @@ export class App {
     } else {
       const activeGlobal = isAurora
         ? this.auroraGlobalScene
-        : this.rayleighGlobalScene;
+        : isRayleigh
+        ? this.rayleighGlobalScene
+        : this.sunsetGlobalScene;
 
       this.scene.background =
         activeGlobal.backgroundColor || new THREE.Color(0x000000);
@@ -120,6 +134,20 @@ export class App {
     }
     if (this.rayleighGlobalScene?.setTimeOfDay) {
       this.rayleighGlobalScene.setTimeOfDay(hour);
+    }
+    if (this.sunsetLocalScene?.setTimeOfDay) {
+      this.sunsetLocalScene.setTimeOfDay(hour);
+    }
+    if (this.sunsetGlobalScene?.setTimeOfDay) {
+      this.sunsetGlobalScene.setTimeOfDay(hour);
+    }
+
+    // Si el módulo activo es sunset, actualizar fondo/niebla inmediatamente
+    if (this.currentModule === "sunset" && this.currentScale === "local") {
+      const fogColor = this.sunsetLocalScene.fogColor;
+      const fogDensity = this.sunsetLocalScene.fogDensity;
+      this.scene.background = fogColor.clone();
+      this.scene.fog = new THREE.FogExp2(fogColor.getHex(), fogDensity);
     }
   }
 
@@ -147,12 +175,11 @@ export class App {
     const elapsedTime = this.clock.getElapsedTime();
 
     if (this.auroraLocalScene.visible) this.auroraLocalScene.update(elapsedTime);
-    if (this.auroraGlobalScene.visible)
-      this.auroraGlobalScene.update(elapsedTime);
-    if (this.rayleighLocalScene.visible)
-      this.rayleighLocalScene.update(elapsedTime);
-    if (this.rayleighGlobalScene.visible)
-      this.rayleighGlobalScene.update(elapsedTime);
+    if (this.auroraGlobalScene.visible) this.auroraGlobalScene.update(elapsedTime);
+    if (this.rayleighLocalScene.visible) this.rayleighLocalScene.update(elapsedTime);
+    if (this.rayleighGlobalScene.visible) this.rayleighGlobalScene.update(elapsedTime);
+    if (this.sunsetLocalScene.visible) this.sunsetLocalScene.update(elapsedTime);
+    if (this.sunsetGlobalScene.visible) this.sunsetGlobalScene.update(elapsedTime);
 
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
