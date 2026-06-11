@@ -167,15 +167,16 @@ export class SunsetGlobalScene extends THREE.Group {
       const mat = new THREE.LineBasicMaterial({
         color,
         transparent: true,
-        opacity: 0.55,
-        linewidth: 1,
+        opacity: 0.65,
+        linewidth: 1.5,
       });
       return new THREE.Line(geo, mat);
     };
 
-    this.blueExtRay = makeExteriorRay(0x6699ff);
-    this.greenExtRay = makeExteriorRay(0x44ee88);
-    this.redExtRay = makeExteriorRay(0xff6644);
+    // Separamos los rayos exteriores espacialmente un poco para que no se pisen mutuamente
+    this.blueExtRay = makeExteriorRay(0x4488ff);
+    this.greenExtRay = makeExteriorRay(0x22ff77);
+    this.redExtRay = makeExteriorRay(0xff4422);
     this.raysGroup.add(this.blueExtRay, this.greenExtRay, this.redExtRay);
 
     const makeInteriorRay = (color, opacity) => {
@@ -187,19 +188,20 @@ export class SunsetGlobalScene extends THREE.Group {
         color,
         transparent: true,
         opacity,
-        linewidth: 2,
+        linewidth: 3,
       });
       return new THREE.Line(geo, mat);
     };
 
-    this.blueIntRay = makeInteriorRay(0x4477ff, 0.15);
-    this.greenIntRay = makeInteriorRay(0x22cc66, 0.40);
-    this.redIntRay = makeInteriorRay(0xff5500, 0.95);
+    // Ajustamos opacidades base balanceadas para ver los tres al tiempo dentro de la atmósfera
+    this.blueIntRay = makeInteriorRay(0x3388ff, 0.75);
+    this.greenIntRay = makeInteriorRay(0x22ff66, 0.80);
+    this.redIntRay = makeInteriorRay(0xff3300, 0.95);
     this.raysGroup.add(this.blueIntRay, this.greenIntRay, this.redIntRay);
 
-    this.blueDot = this._makeWavelengthLabel(0x5588ff);
-    this.greenDot = this._makeWavelengthLabel(0x33dd77);
-    this.redDot = this._makeWavelengthLabel(0xff4422);
+    this.blueDot = this._makeWavelengthLabel(0x3388ff);
+    this.greenDot = this._makeWavelengthLabel(0x22ff66);
+    this.redDot = this._makeWavelengthLabel(0xff3300);
     this.raysGroup.add(this.blueDot, this.greenDot, this.redDot);
   }
 
@@ -208,8 +210,6 @@ export class SunsetGlobalScene extends THREE.Group {
     const mat = new THREE.MeshBasicMaterial({ color });
     return new THREE.Mesh(geo, mat);
   }
-
-  // ─── PARTÍCULAS DE DISPERSIÓN ─────────────────────────────────────────────
 
   _initScatterParticles() {
     this.scatterGroup = new THREE.Group();
@@ -245,7 +245,6 @@ export class SunsetGlobalScene extends THREE.Group {
 
     this.blueScatter = makeScatter(0x4488ff, 180);
     this.greenScatter = makeScatter(0x33cc66, 90);
-    // NUEVO: Añadir partículas rojas que simularán ingresar a la Tierra en el atardecer
     this.redScatter = makeScatter(0xff3311, 140);
 
     this.scatterGroup.add(this.blueScatter, this.greenScatter, this.redScatter);
@@ -346,30 +345,46 @@ export class SunsetGlobalScene extends THREE.Group {
     const entryPoint = this._getAtmosphereEntry(sunPos, obsPos, atmR);
     if (!entryPoint) return;
 
-    const midAtm = entryPoint.clone().lerp(obsPos, 0.5);
+    // Desplazamientos laterales mínimos automáticos para separar los tres rayos del Sol en el espacio exterior
+    const offsetBlue = new THREE.Vector3(0, 0.12, 0);
+    const offsetGreen = new THREE.Vector3(0, 0.0, 0);
+    const offsetRed = new THREE.Vector3(0, -0.12, 0);
 
-    this._setLinePoints(this.blueExtRay, sunPos, entryPoint);
-    this._setLinePoints(this.greenExtRay, sunPos, entryPoint);
-    this._setLinePoints(this.redExtRay, sunPos, entryPoint);
+    this._setLinePoints(this.blueExtRay, sunPos.clone().add(offsetBlue), entryPoint.clone().add(offsetBlue));
+    this._setLinePoints(this.greenExtRay, sunPos.clone().add(offsetGreen), entryPoint.clone().add(offsetGreen));
+    this._setLinePoints(this.redExtRay, sunPos.clone().add(offsetRed), entryPoint.clone().add(offsetRed));
 
-    this._setLinePoints(this.blueIntRay, entryPoint, midAtm);
-    const blueReach = entryPoint.clone().lerp(obsPos, 0.15);
-    this._setLinePoints(this.blueIntRay, entryPoint, blueReach);
+    // ─── CONTROL DE ALCANCE DIDÁCTICO (LOS TRES VISIBLES CON CLARIDAD) ───
+    // El azul se dispersa inmediatamente al entrar (se queda al 25% del camino)
+    const blueReach = entryPoint.clone().lerp(obsPos, 0.25);
+    this._setLinePoints(this.blueIntRay, entryPoint.clone().add(offsetBlue), blueReach.add(offsetBlue));
 
-    const greenReach = entryPoint.clone().lerp(obsPos, 0.5 + elevation * 0.3);
-    this._setLinePoints(this.greenIntRay, entryPoint, greenReach);
+    // El verde avanza un poco más en la atmósfera antes de extinguirse (60% del camino)
+    const greenReach = entryPoint.clone().lerp(obsPos, 0.60);
+    this._setLinePoints(this.greenIntRay, entryPoint.clone().add(offsetGreen), greenReach.add(offsetGreen));
 
-    this._setLinePoints(this.redIntRay, entryPoint, obsPos);
+    // El rojo logra cruzar toda la atmósfera de lado a lado y le pega al observador
+    this._setLinePoints(this.redIntRay, entryPoint.clone().add(offsetRed), obsPos.clone().add(offsetRed));
 
-    const redStrength = 0.55 + (1 - elevation) * 0.45;
-    this.redIntRay.material.opacity = redStrength;
-    this.blueIntRay.material.opacity = 0.08 + elevation * 0.15;
-    this.greenIntRay.material.opacity = 0.15 + elevation * 0.3;
+    // Desvanecimiento nocturno (después de las 8 PM o antes de las 6 AM)
+    let nightFade = 1.0;
+    if (this.timeOfDay >= 20 || this.timeOfDay <= 4) {
+      nightFade = 0.0; // Apagado total nocturno
+    }
 
-    const blueEnd = entryPoint.clone().lerp(obsPos, 0.15);
-    this.blueDot.position.copy(blueEnd);
+    // Balanceamos las opacidades dinámicas para que los 3 brillen a la par en pantalla
+    this.blueIntRay.material.opacity = (0.75) * nightFade;
+    this.greenIntRay.material.opacity = (0.80) * nightFade;
+    this.redIntRay.material.opacity = (0.95) * nightFade;
+
+    this.blueExtRay.material.opacity = 0.65 * nightFade;
+    this.greenExtRay.material.opacity = 0.65 * nightFade;
+    this.redExtRay.material.opacity = 0.65 * nightFade;
+
+    // Posicionamos los indicadores esféricos justo al final de cada tramo de rayo interior
+    this.blueDot.position.copy(blueReach);
     this.greenDot.position.copy(greenReach);
-    this.redDot.position.copy(obsPos);
+    this.redDot.position.copy(obsPos.clone().add(offsetRed));
 
     this._updateScatterPositions(entryPoint, elevation);
   }
@@ -396,14 +411,11 @@ export class SunsetGlobalScene extends THREE.Group {
   }
 
   _resetScatterParticles(elevation) {
-    const blueOp = 0.4 + (1 - elevation) * 0.5;
-    const greenOp = 0.25 + (1 - elevation) * 0.3;
-    // Las partículas rojas se vuelven sumamente visibles e intensas durante el atardecer
-    const redOp = 0.1 + (1 - elevation) * 0.8;
-    
-    if (this.blueScatter) this.blueScatter.material.opacity = blueOp;
-    if (this.greenScatter) this.greenScatter.material.opacity = greenOp;
-    if (this.redScatter) this.redScatter.material.opacity = redOp;
+    let nightFade = (this.timeOfDay >= 20 || this.timeOfDay <= 4) ? 0.2 : 1.0;
+
+    if (this.blueScatter) this.blueScatter.material.opacity = (0.4 + (1 - elevation) * 0.5) * nightFade;
+    if (this.greenScatter) this.greenScatter.material.opacity = (0.25 + (1 - elevation) * 0.3) * nightFade;
+    if (this.redScatter) this.redScatter.material.opacity = (0.1 + (1 - elevation) * 0.8) * nightFade;
   }
 
   _updatePathIndicator(sunPos) {
@@ -474,7 +486,6 @@ export class SunsetGlobalScene extends THREE.Group {
       const elevation = this._currentElevation ?? 0.5;
       const spread = 0.8 + (1 - elevation) * 1.2;
 
-      // Animación básica de nubes de dispersión para Azul y Verde
       const animateCloud = (pts, speed) => {
         const pos = pts.geometry.attributes.position.array;
         const count = pts.userData.count;
@@ -494,33 +505,33 @@ export class SunsetGlobalScene extends THREE.Group {
       animateCloud(this.blueScatter, 0.3);
       animateCloud(this.greenScatter, 0.2);
 
-      // NUEVO: Animación Especial de las Partículas Rojas
-      if (this.redScatter) {
+      if (this.redScatter && this.redScatter.visible) {
         const pos = this.redScatter.geometry.attributes.position.array;
         const count = this.redScatter.userData.count;
         const base = this.redScatter.userData.baseEntry;
 
         if (base) {
-          // Evaluar si es hora de amanecer/atardecer (elevación baja = factor alto)
-          const sunsetFactor = Math.max(0.0, 1.0 - elevation * 2.0); 
-          // Vector dinámico directo al Observador/Tierra
+          let isTwilight = (this.timeOfDay >= 16 && this.timeOfDay <= 19) || (this.timeOfDay >= 5 && this.timeOfDay <= 8);
+          let sunsetFactor = isTwilight ? Math.max(0.0, 1.0 - elevation * 2.0) : 0.0;
+          
+          if (this.timeOfDay >= 20 || this.timeOfDay < 4) {
+            sunsetFactor = 0.0;
+          }
+
           const toObserver = this.OBSERVER_POS.clone().sub(base);
 
           for (let i = 0; i < count; i++) {
             const vel = this.redScatter.userData.velocities[i];
             const t = (elapsedTime * 0.25 + i * 0.007) % 1;
 
-            // 1. Comportamiento Regular (Dispersión estática local en la entrada)
             const normalX = vel.x * spread * 55 * t;
             const normalY = vel.y * spread * 55 * t;
             const normalZ = vel.z * spread * 55 * t;
 
-            // 2. Comportamiento de Atardecer (Avanzan en línea recta cruzando hacia la tierra)
             const entryX = toObserver.x * t;
             const entryY = toObserver.y * t;
             const entryZ = toObserver.z * t;
 
-            // Interpolación suave según la hora del día
             pos[i * 3] = base.x + ((1.0 - sunsetFactor) * normalX + sunsetFactor * entryX);
             pos[i * 3 + 1] = base.y + ((1.0 - sunsetFactor) * normalY + sunsetFactor * entryY);
             pos[i * 3 + 2] = base.z + ((1.0 - sunsetFactor) * normalZ + sunsetFactor * entryZ);
@@ -535,8 +546,6 @@ export class SunsetGlobalScene extends THREE.Group {
     }
   }
 
-  // ─── SINCRONIZADOR DE POSICIONES BASE ───────────────────────────────────────
-
   _updateScatterPositions(entryPoint, elevation) {
     this.blueScatter.userData.baseEntry = entryPoint.clone();
     this.greenScatter.userData.baseEntry = entryPoint.clone();
@@ -548,12 +557,11 @@ export class SunsetGlobalScene extends THREE.Group {
 
     const initCloud = (pts, entry, sp) => {
       const pos = pts.geometry.attributes.position.array;
-      const count = pts.userData.count;
-      for (let i = 0; i < count; i++) {
+      for (let i = 0; i < pts.userData.count; i++) {
         const vel = pts.userData.velocities[i];
-        pos[i * 3] = entry.x + vel.x * sp * 55;
-        pos[i * 3 + 1] = entry.y + vel.y * sp * 55;
-        pos[i * 3 + 2] = entry.z + vel.z * sp * 55;
+        pos[i * 3] = entry.x + vel.x * sp * 60;
+        pos[i * 3 + 1] = entry.y + vel.y * sp * 60;
+        pos[i * 3 + 2] = entry.z + vel.z * sp * 60;
       }
       pts.geometry.attributes.position.needsUpdate = true;
     };

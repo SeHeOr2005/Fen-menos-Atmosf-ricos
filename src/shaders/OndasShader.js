@@ -48,39 +48,73 @@ export const spectralFragmentShader = `
 
     float mu = dot(viewDir, sunDir);
 
+    // Conservar las fórmulas de densidad y físicas originales del shader de ondas
     float height = max(length(vWorldPos) - uPlanetRadius, 0.0);
     float atmH = max(uAtmosphereRadius - uPlanetRadius, 0.001);
     float h = clamp(height / atmH, 0.0, 1.0);
-
     float density = exp(-h * uDensityFalloff);
 
     vec3 betaR = uRayleighStrength * (1.0 / pow(lambda, vec3(4.0)));
     betaR *= 0.000015;
-
     vec3 betaM = uMieStrength * vec3(1.0);
 
     float rPhase = rayleighPhase(mu);
     float mPhase = miePhase(mu, uMieG);
 
+    // Cálculo original de la dispersión de ondas
     vec3 scatter = uSunIntensity * density * (betaR * rPhase + betaM * mPhase);
     scatter *= uExposure;
+    vec3 originalColor = 1.0 - exp(-scatter);
 
-    vec3 color = 1.0 - exp(-scatter);
+    // Iluminación diurna base
+    float sunIllumination = dot(dir, sunDir);
+    float isDaySide = smoothstep(-0.1, 0.2, sunIllumination);
 
-    // ─── CONTROL DE ILUMINACIÓN SOLAR ──────────────────────────────────────
-    float sunIllumination = max(0.0, dot(dir, sunDir));
+    // ─── ATMÓSFERA AZUL TRANSPARENTE BASE ────────────────────────────────
+    vec3 cleanBlue = vec3(0.12, 0.40, 1.0) * uBlueBoost * 0.75;
+    vec3 baseAtmosphereColor = mix(originalColor, cleanBlue, 0.7);
+
+    // ─── EFECTO CREPÚSCULO NARANJA LOCALIZADO EN LA CASA ─────────────────
+    // Posición exacta de la casa en la superficie terrestre (OBSERVER_POS = vec3(3.0, 0.0, 0.0))
+    vec3 housePos = vec3(3.0, 0.0, 0.0);
+    vec3 houseDir = normalize(housePos);
     
-    // Si NO está iluminado por el sol, oscurecer (efecto sombra planetaria)
-    color *= mix(vec3(0.02), vec3(1.0), sunIllumination);
+    // 1. Dónde se pinta: Máscara radial sobre la vertical de la casa
+    float proximityToHouse = dot(dir, houseDir);
+    float houseMask = smoothstep(0.85, 0.98, proximityToHouse);
 
-    // ─── COMPORTAMIENTO FÍSICO NATURAL ORIGINAL ────────────────────────────
-    // Se removieron las adiciones artificiales de azul y naranja en el horizonte.
+    // 2. Cuándo se pinta: Calculamos el ángulo entre el sol y el horizonte de la casa
+    // El producto punto entre la dirección de la casa y el sol nos da 0.0 EXACTAMENTE cuando el sol está en el horizonte (6 AM / 6 PM)
+    float sunHouseDot = dot(sunDir, houseDir);
     
-    color = clamp(color, 0.0, 1.0);
-    color = pow(color, vec3(0.9));
+    // Filtramos para que solo se active cuando el sol esté rozando el horizonte (-0.3 a 0.3)
+    // Al mediodía el valor de sunHouseDot será alto o perpendicular rompiendo esta condición, apagando el naranja.
+    float goldenHourFactor = smoothstep(0.35, 0.0, abs(sunHouseDot));
+    
+    // Apagado total si el sistema maestro indica que es de noche (uIsNight)
+    goldenHourFactor = mix(goldenHourFactor, 0.0, uIsNight);
 
-    float alpha = clamp(uAlpha * (0.4 + 0.6 * length(color)), 0.0, 1.0);
-    gl_FragColor = vec4(color, alpha);
+    // Color naranja estético para el crepúsculo
+    vec3 sunsetOrange = vec3(1.0, 0.38, 0.05) * uRedBoost * 1.3;
+
+    // Combinamos la atmósfera azul base con el toque naranja localizado
+    vec3 finalColor = mix(baseAtmosphereColor, sunsetOrange, houseMask * goldenHourFactor * 0.9);
+
+    // Aplicamos la iluminación global para oscurecer la cara nocturna
+    finalColor *= isDaySide;
+
+    // Corrección gamma original
+    finalColor = clamp(finalColor, 0.0, 1.0);
+    finalColor = pow(finalColor, vec3(0.9));
+
+    // Efecto Fresnel para bordes cristalinos translúcidos
+    float fresnel = 1.0 - max(0.0, dot(viewDir, dir));
+    fresnel = pow(fresnel, 2.5);
+
+    // Transparencia (Alpha) dinámica dependiente del Fresnel, el brillo y el lado del día
+    float alpha = clamp(uAlpha * (0.15 + length(finalColor) * 0.5 + fresnel * 0.35), 0.0, 1.0) * isDaySide;
+
+    gl_FragColor = vec4(finalColor, alpha);
   }
 `;
 
