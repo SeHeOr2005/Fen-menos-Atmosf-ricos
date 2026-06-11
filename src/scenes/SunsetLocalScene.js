@@ -48,6 +48,7 @@ export class SunsetLocalScene extends THREE.Group {
       exposure: 1.15,
       blueBoost: 1.4,
       redBoost: 1.5,
+      isNight: 0.0, // ← NUEVO: controla si es noche
       side: THREE.BackSide,
     });
 
@@ -299,18 +300,35 @@ export class SunsetLocalScene extends THREE.Group {
    * Sincroniza toda la escena con la hora recibida desde App.js.
    * Esta es la misma variable timeOfDay compartida con SunsetGlobalScene.
    */
+  /**
+   * Sincroniza toda la escena con la hora recibida desde App.js.
+   * Modificado para ciclo de 24 horas real y transición fluida a la noche.
+   */
   setTimeOfDay(hour) {
     this.timeOfDay = hour;
 
-    // Elevación solar: 0 en el horizonte (6h/18h), 1 en el cenit (12h)
-    const t = Math.max(0, Math.min(1, (hour - 6) / 12));
-    const elevation = Math.sin(t * Math.PI); // 0..1..0
+    // Elevación solar: 0 en el horizonte (6h/18h), 1 en el cenit (12h). 0 en la noche.
+    let elevation = 0;
+    if (hour >= 6 && hour <= 18) {
+      const t = (hour - 6) / 12;
+      elevation = Math.sin(t * Math.PI); // Rango 0..1..0
+    }
     this._currentElevation = elevation;
+    
+    // ─── CONTROL DE NOCHE PROGRESIVO (Evita cortes abruptos) ───
+    let nightProgress = 0.0;
+    if (hour >= 18 && hour <= 21) {
+      nightProgress = (hour - 18) / 3.0; // De 6 PM a 9 PM se va oscureciendo (0 a 1)
+    } else if (hour > 21 || hour < 5) {
+      nightProgress = 1.0; // Noche cerrada
+    } else if (hour >= 5 && hour < 6) {
+      nightProgress = 1.0 - (hour - 5.0); // Amanecer (1 a 0)
+    }
 
-    // Dirección del Sol para el shader del cielo
-    const sunAngle = t * Math.PI; // 0..PI
+    // Dirección del Sol calculada de forma continua para las 24 horas
+    const sunAngle = ((hour - 6) / 12) * Math.PI; 
     const sx = Math.cos(sunAngle - Math.PI / 2) * 0.95;
-    const sy = Math.max(Math.sin(sunAngle), -0.15);
+    const sy = Math.sin(sunAngle); // Permite valores negativos bajo el horizonte
     const sz = 0.2;
     this.sunDirection.set(sx, sy, sz).normalize();
 
@@ -318,24 +336,32 @@ export class SunsetLocalScene extends THREE.Group {
     if (this.skyMaterial?.uniforms) {
       this.skyMaterial.uniforms.uSunDirection.value.copy(this.sunDirection);
 
-      // Intensidad de dispersión según hora:
-      // Mediodía → más azul, más intenso
-      // Atardecer → más rojo, más tenue
-      this.skyMaterial.uniforms.uBlueBoost.value = 0.6 + elevation * 1.2;
-      this.skyMaterial.uniforms.uRedBoost.value = 2.2 - elevation * 0.9;
-      this.skyMaterial.uniforms.uSunIntensity.value = 8.0 + elevation * 5.0;
-      this.skyMaterial.uniforms.uMieStrength.value = 0.001 + (1 - elevation) * 0.006;
+      // Enviamos nuevas variables de control al shader si existen
+      if (this.skyMaterial.uniforms.uIsNight) this.skyMaterial.uniforms.uIsNight.value = nightProgress;
+      if (this.skyMaterial.uniforms.uElevation) this.skyMaterial.uniforms.uElevation.value = elevation;
+
+      // Atenuar intensidades dinámicamente al entrar la noche
+      this.skyMaterial.uniforms.uBlueBoost.value = (0.6 + elevation * 1.2) * (1.0 - nightProgress);
+      this.skyMaterial.uniforms.uRedBoost.value = (2.2 - elevation * 0.9) * (1.0 - nightProgress);
+      this.skyMaterial.uniforms.uSunIntensity.value = (8.0 + elevation * 5.0) * (1.0 - nightProgress * 0.98);
+      this.skyMaterial.uniforms.uMieStrength.value = (0.001 + (1 - elevation) * 0.006) * (1.0 - nightProgress);
     }
 
     // ── Posición del Sol en el cielo local ──
     const skyDist = 175;
     const sunX = Math.cos(sunAngle - Math.PI / 2) * 90;
-    const sunY = Math.max(sy * skyDist * 0.9 + 18, -8);
+    const sunY = sy * skyDist * 0.9 + 18;
     const sunZ = -skyDist * 0.85;
 
     this.sunSphere.position.set(sunX, sunY, sunZ);
     this.haloInner.position.copy(this.sunSphere.position);
     this.haloOuter.position.copy(this.sunSphere.position);
+
+    // Ocultar astros físicos si el Sol baja del horizonte
+    const isAboveHorizon = sy > 0;
+    this.sunSphere.visible = isAboveHorizon;
+    this.haloInner.visible = isAboveHorizon;
+    this.haloOuter.visible = isAboveHorizon;
 
     // ── Color del Sol según elevación ──
     const sunColor = this._getSunColor(elevation);
@@ -343,44 +369,51 @@ export class SunsetLocalScene extends THREE.Group {
     this.haloInMat.color.set(this._getSunHaloColor(elevation));
     this.haloOutMat.color.set(this._getSunOuterGlowColor(elevation));
 
-    const isAboveHorizon = elevation > 0.01;
-    this.sunSphere.visible = isAboveHorizon;
-    this.haloInner.visible = isAboveHorizon;
-    this.haloOuter.visible = isAboveHorizon;
-
-    // ── Iluminación dinámica ──
+    // ── Iluminación dinámica afectada por la noche ──
     this.sunLight.color.set(this._getLightColor(elevation));
-    this.sunLight.intensity = isAboveHorizon ? 0.1 + elevation * 2.2 : 0.05;
+    this.sunLight.intensity = isAboveHorizon ? (0.1 + elevation * 2.2) : 0.0;
     this.sunLight.position.copy(this.sunSphere.position).multiplyScalar(0.1);
 
-    this.ambientLight.color.set(this._getAmbientColor(elevation));
-    this.ambientLight.intensity = 0.15 + elevation * 0.5;
+    // Color ambiental: Interpolamos hacia un azul oscuro/negro nocturno
+    let ambientColor = new THREE.Color(this._getAmbientColor(elevation));
+    const nightAmbient = new THREE.Color(0x020208);
+    ambientColor.lerp(nightAmbient, nightProgress);
+    this.ambientLight.color.set(ambientColor);
+    this.ambientLight.intensity = (0.15 + elevation * 0.5) * (1.0 - nightProgress * 0.7);
 
-    this.hemiLight.color.set(this._getSkyHemiColor(elevation));
-    this.hemiLight.groundColor.set(this._getGroundHemiColor(elevation));
-    this.hemiLight.intensity = 0.2 + elevation * 0.35;
+    // Luz hemisférica nocturna
+    let hemiSky = new THREE.Color(this._getSkyHemiColor(elevation));
+    let hemiGround = new THREE.Color(this._getGroundHemiColor(elevation));
+    hemiSky.lerp(new THREE.Color(0x050510), nightProgress);
+    hemiGround.lerp(new THREE.Color(0x020202), nightProgress);
+    this.hemiLight.color.set(hemiSky);
+    this.hemiLight.groundColor.set(hemiGround);
+    this.hemiLight.intensity = (0.2 + elevation * 0.35) * (1.0 - nightProgress * 0.8);
 
-    // ── Horizonte cálido ──
-    const sunsetGlow = Math.max(0, 1.0 - elevation * 2.5);
+    // ── Horizonte cálido (se apaga en la noche) ──
+    const sunsetGlow = Math.max(0, 1.0 - elevation * 2.5) * (1.0 - nightProgress);
     this.horizonGlowMat.opacity = sunsetGlow * 0.55;
 
-    // ── Color del suelo ──
-    const groundColor = new THREE.Color(0x9b8264).lerp(
+    // ── Color del suelo (se oscurece en la noche) ──
+    let groundColor = new THREE.Color(0x9b8264).lerp(
       new THREE.Color(0xc87840),
       sunsetGlow * 0.6
     );
+    groundColor.lerp(new THREE.Color(0x0a0907), nightProgress);
     this.groundMat.color.set(groundColor);
 
-    // ── Color de niebla/fondo (leído por App.js) ──
-    this.fogColor.set(this._getSkyBgColor(elevation));
-    this.fogDensity = 0.008 + (1 - elevation) * 0.006;
+    // ── Color de niebla/fondo interpolado a negro noche ──
+    let skyBgColor = new THREE.Color(this._getSkyBgColor(elevation));
+    const nightSkyBg = new THREE.Color(0x010105); 
+    skyBgColor.lerp(nightSkyBg, nightProgress);
+    this.fogColor.set(skyBgColor);
+    this.fogDensity = 0.008 + (1 - elevation) * 0.006 + nightProgress * 0.004;
 
-    // ── Ventanas de edificios ──
-    const nightGlow = Math.max(0, 1 - elevation * 3);
+    // ── Ventanas de edificios (brillan en la noche) ──
     this.buildings.forEach((building) => {
       building.children.forEach((mesh) => {
-        if (mesh.material?.color && mesh.geometry.type === "PlaneGeometry") {
-          mesh.material.opacity = 0.3 + nightGlow * 0.7;
+        if (mesh.geometry.type === "PlaneGeometry") {
+          mesh.material.opacity = 0.1 + nightProgress * 0.8;
         }
       });
     });

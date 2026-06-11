@@ -26,6 +26,7 @@ export const spectralFragmentShader = `
   uniform float uExposure;
   uniform float uBlueBoost;
   uniform float uRedBoost;
+  uniform float uIsNight; // 0 = día/atardecer, 1 = noche
 
   const float PI = 3.14159265359;
   const vec3 lambda = vec3(0.680, 0.550, 0.440);
@@ -66,14 +67,15 @@ export const spectralFragmentShader = `
 
     vec3 color = 1.0 - exp(-scatter);
 
-    // Refuerzo visual del fenómeno
-    float sunDot = dot(dir, sunDir);
-    float horizon = clamp(1.0 - abs(dir.y), 0.0, 1.0);
-    float sunset = smoothstep(-0.2, 0.3, -sunDot);
+    // ─── CONTROL DE ILUMINACIÓN SOLAR ──────────────────────────────────────
+    float sunIllumination = max(0.0, dot(dir, sunDir));
+    
+    // Si NO está iluminado por el sol, oscurecer (efecto sombra planetaria)
+    color *= mix(vec3(0.02), vec3(1.0), sunIllumination);
 
-    color.b += (1.0 - sunset) * uBlueBoost * (1.0 - horizon) * 0.4;
-    color.r += sunset * uRedBoost * horizon * 0.7;
-
+    // ─── COMPORTAMIENTO FÍSICO NATURAL ORIGINAL ────────────────────────────
+    // Se removieron las adiciones artificiales de azul y naranja en el horizonte.
+    
     color = clamp(color, 0.0, 1.0);
     color = pow(color, vec3(0.9));
 
@@ -96,6 +98,7 @@ export function createRayleighSpectralMaterial(options = {}) {
     exposure = 1.0,
     blueBoost = 1.0,
     redBoost = 1.0,
+    isNight = 0.0,
     side = THREE.DoubleSide,
   } = options;
 
@@ -115,6 +118,7 @@ export function createRayleighSpectralMaterial(options = {}) {
       uExposure: { value: exposure },
       uBlueBoost: { value: blueBoost },
       uRedBoost: { value: redBoost },
+      uIsNight: { value: isNight },
     },
     transparent: true,
     depthWrite: false,
